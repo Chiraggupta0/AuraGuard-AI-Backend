@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: .
+      target: release
+    container_name: auraguard-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5000}:5000"
+    env_file:
+      - .env
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/auraguard_ai
+    depends_on:
+      - mongo
+    networks:
+      - auraguard-network
+
+  mongo:
+    image: mongo:7
+    container_name: auraguard-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - auraguard-network
+
+networks:
+  auraguard-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
