@@ -30,3 +30,7 @@ Thumbs.db
 # Uploads (local fallback)
 uploads/
 tmp/
+
+# Firebase Admin service account credentials — never commit
+*firebase-adminsdk*.json
+serviceAccountKey.json

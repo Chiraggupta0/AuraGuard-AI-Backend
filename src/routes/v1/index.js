@@ -3,6 +3,7 @@ const express = require('express');
 const authRoutes = require('../../modules/auth/auth.routes');
 const userRoutes = require('../../modules/users/user.routes');
 const meetingRoutes = require('../../modules/meetings/meeting.routes');
+const roomRoutes = require('../../modules/rooms/room.routes');
 const aiMonitoringRoutes = require('../../modules/aiMonitoring/aiMonitoring.routes');
 const violationRoutes = require('../../modules/violations/violation.routes');
 const moderationRoutes = require('../../modules/moderation/moderation.routes');
@@ -19,6 +20,7 @@ const moduleRoutes = [
   { path: '/auth', route: authRoutes },
   { path: '/users', route: userRoutes },
   { path: '/meetings', route: meetingRoutes },
+  { path: '/rooms', route: roomRoutes },
   { path: '/ai-monitoring', route: aiMonitoringRoutes },
   { path: '/violations', route: violationRoutes },
   { path: '/moderation', route: moderationRoutes },

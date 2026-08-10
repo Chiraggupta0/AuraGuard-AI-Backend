@@ -7,6 +7,9 @@ const { initSocket } = require('./config/socket');
 const registerSocketHandlers = require('./sockets');
 const registerJobs = require('./jobs');
 
+// Initialize Firebase Admin SDK before anything else
+require('./config/firebase-admin');
+
 const httpServer = http.createServer(app);
 
 const startServer = async () => {

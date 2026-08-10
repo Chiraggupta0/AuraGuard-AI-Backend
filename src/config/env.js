@@ -64,6 +64,14 @@ const env = {
   },
 
   logLevel: process.env.LOG_LEVEL || 'info',
+
+  // LiveKit configuration
+  livekitUrl: process.env.LIVEKIT_URL,
+  livekitApiKey: process.env.LIVEKIT_API_KEY,
+  livekitApiSecret: process.env.LIVEKIT_API_SECRET,
+
+  // Firebase Admin SDK configuration
+  firebaseProjectId: process.env.FIREBASE_PROJECT_ID,
 };
 
 module.exports = env;
