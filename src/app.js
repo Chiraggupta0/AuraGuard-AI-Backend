@@ -25,7 +25,7 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(
   cors({
-    origin: env.clientUrl,
+    origin: env.clientUrls,
     credentials: true,
   })
 );

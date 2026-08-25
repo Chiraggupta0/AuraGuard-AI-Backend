@@ -10,7 +10,18 @@ const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT, 10) || 5000,
   apiVersion: process.env.API_VERSION || 'v1',
-  clientUrl: process.env.CLIENT_URL || 'http://localhost:3000',
+  // CLIENT_URL may be a single URL or a comma-separated list — Vite
+  // auto-bumps its dev port (5174, 5175...) if 5173 is already taken by
+  // another local project, so allowing a small range avoids CORS breaking
+  // every time that happens. clientUrl (singular) stays the first entry,
+  // used where a single URL is needed (e.g. building email links).
+  clientUrls: (process.env.CLIENT_URL || 'http://localhost:5173,http://localhost:5174,http://localhost:5175')
+    .split(',')
+    .map((url) => url.trim())
+    .filter(Boolean),
+  get clientUrl() {
+    return this.clientUrls[0];
+  },
 
   mongo: {
     uri:

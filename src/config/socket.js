@@ -9,7 +9,7 @@ let io;
 const initSocket = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: env.clientUrl,
+      origin: env.clientUrls,
       credentials: true,
     },
     pingTimeout: 30000,
