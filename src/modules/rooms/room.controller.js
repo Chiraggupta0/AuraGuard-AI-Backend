@@ -3,6 +3,7 @@ const ApiError = require('../../utils/ApiError');
 const ApiResponse = require('../../utils/ApiResponse');
 const liveKitService = require('../../services/livekit.service');
 const roomService = require('./room.service');
+const admissionService = require('./admission.service');
 const { generateTokenSchema, createRoomSchema, joinRoomSchema } = require('./room.validator');
 const logger = require('../../config/logger');
 
@@ -48,6 +49,11 @@ const joinRoom = catchAsync(async (req, res) => {
     canonicalRoomCode,
     status: room.status,
   });
+
+  // Host-based admission gate: the host is always let through; anyone else
+  // needs an approved join request on file (see admission.service.js). This
+  // is the enforcement point — no LiveKit token is generated before it.
+  await admissionService.assertJoinAuthorized(room, userId);
 
   // Add participant to room
   await roomService.addParticipantToRoom(canonicalRoomCode, userId, userEmail);
@@ -100,6 +106,10 @@ const validateRoom = catchAsync(async (req, res) => {
     roomCode: room.roomCode,
     status: room.status,
     expiresAt: room.expiresAt,
+    // Backend-computed, used by the frontend only to decide which UI to show
+    // (host controls vs. waiting-for-admission screen) — never trusted as an
+    // authorization signal; every host-only action re-checks room.hostId.
+    isHost: room.hostId === req.user._id,
   }).send(res);
 });
 

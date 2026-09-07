@@ -5,6 +5,7 @@ const logger = require('./config/logger');
 const { connectDB, disconnectDB } = require('./config/db');
 const { initSocket } = require('./config/socket');
 const registerSocketHandlers = require('./sockets');
+const registerAdmissionNamespace = require('./sockets/admission.socket');
 const registerJobs = require('./jobs');
 
 // Initialize Firebase Admin SDK before anything else
@@ -17,6 +18,7 @@ const startServer = async () => {
 
   const io = initSocket(httpServer);
   registerSocketHandlers(io);
+  registerAdmissionNamespace(io);
   registerJobs();
 
   httpServer.listen(env.port, () => {
