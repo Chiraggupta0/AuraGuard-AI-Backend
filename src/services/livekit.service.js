@@ -1,6 +1,41 @@
-const { AccessToken } = require('livekit-server-sdk');
+const { AccessToken, RoomServiceClient, TrackType } = require('livekit-server-sdk');
 const env = require('../config/env');
 const logger = require('../config/logger');
+
+let roomServiceClient = null;
+const getRoomServiceClient = () => {
+  if (!roomServiceClient) {
+    roomServiceClient = new RoomServiceClient(env.livekitUrl, env.livekitApiKey, env.livekitApiSecret);
+  }
+  return roomServiceClient;
+};
+
+// A room's LiveKit identity is `${firebaseUid}-${randomSuffix}` (see
+// room.controller.js#joinRoom) — a fresh suffix per session, so callers that
+// only know the stable Firebase UID (e.g. the Violation Engine) need to
+// resolve the participant's CURRENT identity before they can be muted or
+// removed. Returns null if that UID isn't currently in the room (e.g. they
+// already left) rather than throwing, since that's an expected race, not a
+// server error.
+const findParticipantIdentity = async (roomName, firebaseUid) => {
+  const participants = await getRoomServiceClient().listParticipants(roomName);
+  const match = participants.find((p) => p.identity === firebaseUid || p.identity.startsWith(`${firebaseUid}-`));
+  return match ? match.identity : null;
+};
+
+// Mutes the participant's published microphone track server-side — enforced
+// by LiveKit itself, not just hidden in the host's UI.
+const muteParticipantAudio = async (roomName, identity) => {
+  const participant = await getRoomServiceClient().getParticipant(roomName, identity);
+  const audioTrack = participant.tracks.find((t) => t.type === TrackType.AUDIO);
+  if (!audioTrack) {
+    logger.warn('Mute requested but participant has no published audio track', { roomName, identity });
+    return null;
+  }
+  return getRoomServiceClient().mutePublishedTrack(roomName, identity, audioTrack.sid, true);
+};
+
+const removeParticipant = async (roomName, identity) => getRoomServiceClient().removeParticipant(roomName, identity);
 
 const generateRoomToken = async (roomName, userId, displayName, extraMetadata = {}) => {
   try {
@@ -43,4 +78,7 @@ const generateRoomToken = async (roomName, userId, displayName, extraMetadata = 
 
 module.exports = {
   generateRoomToken,
+  findParticipantIdentity,
+  muteParticipantAudio,
+  removeParticipant,
 };
