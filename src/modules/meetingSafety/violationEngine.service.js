@@ -98,7 +98,19 @@ const createViolation = async ({ roomCode, hostId, participantId, participantNam
 
   logger.info('[VIOLATION] Confirmed', { roomCode, participantId, source, type, severity });
 
-  notifyHostOfViolation(roomCode, toPublicViolation(doc));
+  // The host-controlled enforcement model has no one to escalate to when the
+  // HOST is the one who violated — there is still a Mongo record (audit
+  // trail) and the violator still gets their own personal warning (see
+  // sockets/violationEngine.socket.js#report_detection's ack, which is
+  // independent of this notification), but no enforcement popup is created
+  // for anyone. Without this check, the host's own '/violations' subscription
+  // (joined via host:subscribe, same as for any other participant's
+  // violations) would receive a popup offering to mute/remove themselves.
+  if (participantId === hostId) {
+    logger.info('[VIOLATION] Host self-violation — no enforcement popup created', { roomCode, participantId });
+  } else {
+    notifyHostOfViolation(roomCode, toPublicViolation(doc));
+  }
 
   return doc;
 };
@@ -255,16 +267,22 @@ const dismiss = async (roomCode, violationId, requesterUid) => {
   return toPublicViolation(doc);
 };
 
+// Backend-enforced, not just a hidden button: mute/remove must never target
+// the host, even if a stale/pre-existing violation record has
+// participantId === hostId (e.g. one created before this check existed) or a
+// client sends the request directly. The host-controlled enforcement model
+// has no one above the host to authorize acting against them.
 const recordAction = async (roomCode, violationId, requesterUid, actionTaken) => {
-  await assertIsHost(roomCode, requesterUid);
-  const doc = await MeetingViolation.findOneAndUpdate(
-    { _id: violationId, roomCode },
-    { actionTaken },
-    { new: true }
-  );
+  const room = await assertIsHost(roomCode, requesterUid);
+  const doc = await MeetingViolation.findOne({ _id: violationId, roomCode });
   if (!doc) {
     throw ApiError.notFound('Violation not found');
   }
+  if (doc.participantId === room.hostId) {
+    throw ApiError.forbidden('Cannot mute or remove the host');
+  }
+  doc.actionTaken = actionTaken;
+  await doc.save();
   notifyHostViolationUpdated(roomCode, toPublicViolation(doc));
   return doc;
 };
