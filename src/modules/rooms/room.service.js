@@ -142,19 +142,36 @@ const addParticipantToRoom = async (roomCode, userId, userEmail) => {
   }
 };
 
-// End room
-const endRoom = async (roomCode) => {
+// End room — host-only. Ends the meeting for everyone: an ended room's code
+// can never be used to join or re-start the old meeting again (enforced by
+// the existing status check in getRoomByCode above). Idempotent: ending an
+// already-ended room is a no-op, not an error, so a caller doesn't need to
+// special-case a double-call (e.g. two leave events racing).
+const endRoom = async (roomCode, requesterUid) => {
   try {
-    const room = await Room.findOne({ roomCode });
+    // Case-insensitive lookup, same reasoning as getRoomByCode: the code a
+    // caller has in hand may differ in casing from what's stored.
+    const room = await Room.findOne({
+      roomCode: new RegExp(`^${escapeRegex(String(roomCode).trim())}$`, 'i'),
+    });
 
     if (!room) {
       throw ApiError.notFound('Room not found');
     }
 
+    if (room.hostId !== requesterUid) {
+      throw ApiError.forbidden('Only the room host can end the meeting');
+    }
+
+    if (room.status === 'ENDED') {
+      return room;
+    }
+
     room.status = 'ENDED';
+    room.endedAt = new Date();
     await room.save();
 
-    logger.info('[ROOM] Room ended', { roomCode });
+    logger.info('[ROOM] Room ended', { roomCode: room.roomCode, hostId: requesterUid });
 
     return room;
   } catch (error) {

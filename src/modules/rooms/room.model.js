@@ -31,6 +31,10 @@ const roomSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    endedAt: {
+      type: Date,
+      default: null,
+    },
     expiresAt: {
       type: Date,
       required: true,

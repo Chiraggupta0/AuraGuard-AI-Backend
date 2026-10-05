@@ -15,6 +15,7 @@ router.post('/token', validate(generateTokenSchema), roomController.generateToke
 router.post('/create', authenticateFirebaseUser, validate(createRoomSchema), roomController.createRoom);
 router.post('/join', authenticateFirebaseUser, validate(joinRoomSchema), roomController.joinRoom);
 router.get('/validate/:roomCode', authenticateFirebaseUser, roomController.validateRoom);
+router.post('/:roomCode/end', authenticateFirebaseUser, roomController.endRoom);
 
 // Host admission ("knock to enter") — REST fallback/reconciliation for the
 // live '/admission' socket namespace (src/sockets/admission.socket.js).

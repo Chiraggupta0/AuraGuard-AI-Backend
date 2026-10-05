@@ -113,6 +113,27 @@ const validateRoom = catchAsync(async (req, res) => {
   }).send(res);
 });
 
+// End the meeting — host-only. Marks the room ended in MongoDB so its code
+// can never be reused to join/start the old meeting again (enforced by the
+// existing ACTIVE-only check in getRoomByCode). Does not touch LiveKit,
+// admission, or violation behavior — this only updates room lifecycle state.
+const endRoom = catchAsync(async (req, res) => {
+  const { roomCode } = req.params;
+  const userId = req.user._id;
+
+  logger.info('[ROOM] Ending room', { roomCode, userId });
+
+  const room = await roomService.endRoom(roomCode, userId);
+
+  logger.info('[ROOM] Room end request completed', { roomCode: room.roomCode, status: room.status });
+
+  new ApiResponse(200, 'Room ended', {
+    roomCode: room.roomCode,
+    status: room.status,
+    endedAt: room.endedAt,
+  }).send(res);
+});
+
 // Legacy endpoint - generates token with any room (for backward compatibility during transition)
 const generateToken = catchAsync(async (req, res) => {
   const { roomName, displayName } = await generateTokenSchema.parseAsync(req.body);
@@ -131,5 +152,6 @@ module.exports = {
   createRoom,
   joinRoom,
   validateRoom,
+  endRoom,
   generateToken,
 };
